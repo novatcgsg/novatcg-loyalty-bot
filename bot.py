@@ -268,13 +268,92 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Action cancelled.")
     return ConversationHandler.END
 
-async def unknown_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        f"Hey {update.effective_user.first_name}!\n\n"
-        "I am the *Nova Rewards Bot*.\n\n"
-        "Type /start to access the main menu!",
-        parse_mode="Markdown",
-    )
+async def smart_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    text = update.message.text.lower().strip()
+
+    # Balance keywords
+    if any(word in text for word in ["balance", "points", "how many", "my points", "check"]):
+        ensure_user_exists(user.id, user.first_name, user.username or "")
+        points = get_user_points(user.id)
+        await update.message.reply_text(
+            f"*Your Points Balance*\n\nYou currently have *{points} points*.\n\n"
+            "Keep stacking. Big rewards are coming... stay tuned!",
+            parse_mode="Markdown",
+        )
+
+    # Redeem keywords
+    elif any(word in text for word in ["redeem", "reward", "prize", "voucher", "claim"]):
+        await update.message.reply_text(
+            "*Redemption Coming Soon!*\n\n"
+            "Something is brewing at NovaTCG...\n\n"
+            "Stay tuned for the big reveal!",
+            parse_mode="Markdown",
+        )
+
+    # Earn keywords
+    elif any(word in text for word in ["earn", "how to", "eligible", "qualify", "rules"]):
+        await update.message.reply_text(
+            "*How to Earn Points*\n\n"
+            "Spend $100 and earn 1 point\n\n"
+            "*Eligibility Rules:*\n"
+            "- In-store purchases\n"
+            "- Online orders\n"
+            "- TikTok Live purchases\n"
+            "- Sealed products do NOT qualify\n"
+            "- Shipping fees do not qualify\n\n"
+            "Stay tuned for the big reveal on redemption prizes!",
+            parse_mode="Markdown",
+        )
+
+    # Greeting keywords
+    elif any(word in text for word in ["hi", "hello", "hey", "helo", "hii", "sup", "yo"]):
+        keyboard = [
+            [InlineKeyboardButton("Check My Balance", callback_data="check_balance")],
+            [InlineKeyboardButton("Redeem Points", callback_data="redeem_points")],
+            [InlineKeyboardButton("How to Earn Points", callback_data="how_to_earn")],
+        ]
+        if is_admin(user.id):
+            keyboard.append([InlineKeyboardButton("Admin Panel", callback_data="admin_panel")])
+        await update.message.reply_text(
+            f"Hey {user.first_name}! Welcome to *Nova Rewards Bot*!\n\n"
+            "Something BIG is brewing at NovaTCG...\n\n"
+            "What would you like to do?",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+
+    # Help keywords
+    elif any(word in text for word in ["help", "menu", "what", "how", "info"]):
+        keyboard = [
+            [InlineKeyboardButton("Check My Balance", callback_data="check_balance")],
+            [InlineKeyboardButton("Redeem Points", callback_data="redeem_points")],
+            [InlineKeyboardButton("How to Earn Points", callback_data="how_to_earn")],
+        ]
+        if is_admin(user.id):
+            keyboard.append([InlineKeyboardButton("Admin Panel", callback_data="admin_panel")])
+        await update.message.reply_text(
+            f"Here is what I can do for you, {user.first_name}!\n\n"
+            "Use the buttons below or type /start to access the main menu.",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+
+    # Default fallback
+    else:
+        keyboard = [
+            [InlineKeyboardButton("Check My Balance", callback_data="check_balance")],
+            [InlineKeyboardButton("Redeem Points", callback_data="redeem_points")],
+            [InlineKeyboardButton("How to Earn Points", callback_data="how_to_earn")],
+        ]
+        if is_admin(user.id):
+            keyboard.append([InlineKeyboardButton("Admin Panel", callback_data="admin_panel")])
+        await update.message.reply_text(
+            f"Hey {user.first_name}! I am the *Nova Rewards Bot*.\n\n"
+            "I did not quite understand that. Use the buttons below or type /start!",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
@@ -285,12 +364,13 @@ def main():
             WAITING_FOR_POINTS: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_points_amount)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
+        allow_reentry=True,
     )
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("balance", balance))
     app.add_handler(admin_conv)
     app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, unknown_message))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, smart_reply))
     app.job_queue.run_repeating(process_purchases, interval=300, first=10)
     logger.info("Bot is running...")
     loop = asyncio.new_event_loop()
