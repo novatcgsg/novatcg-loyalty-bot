@@ -55,7 +55,7 @@ def back_keyboard():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    ensure_user_exists(user.id, user.username or user.first_name)
+    ensure_user_exists(user.id, user.first_name, user.username or "")
     admin = is_admin(user.id)
     await update.message.reply_text(
         f"👋 Welcome *{user.first_name}*!\n\nWhat would you like to do?",
