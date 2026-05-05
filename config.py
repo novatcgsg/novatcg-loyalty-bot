@@ -1,14 +1,20 @@
-# ─────────────────────────────────────────────────────────────
-# config.py — Fill in your credentials before running the bot
-# ─────────────────────────────────────────────────────────────
+import os
+import json
 
-# Your Telegram Bot Token from @BotFather
-BOT_TOKEN = "8645116746:AAE-y7DoW5js_vUDrfxXb4gSnzaQbtSemBo"
-# List of Telegram User IDs who are admins
-ADMIN_IDS = [7627085639]  # NovaTCG admin
+# Telegram Bot Token
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+
+# Admin Telegram User IDs
+ADMIN_IDS = [7627085639]
 
 # Google Sheets ID
-GOOGLE_SHEETS_ID = "1sPIif7zQNHty_4zl-nCbdMMMYMNa19iAGDD1m6mZpuk"
+GOOGLE_SHEETS_ID = os.environ.get("GOOGLE_SHEETS_ID")
 
-# Path to your Google Service Account credentials JSON file
+# Google Credentials (from environment variable)
 GOOGLE_CREDENTIALS_FILE = "credentials.json"
+
+# Write credentials.json from environment variable if it exists
+creds_json = os.environ.get("GOOGLE_CREDENTIALS")
+if creds_json:
+    with open("credentials.json", "w") as f:
+        f.write(creds_json)
