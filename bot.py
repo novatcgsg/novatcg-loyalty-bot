@@ -91,7 +91,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Welcome, {user.first_name}!\n\n"
         "*Nova Rewards Bot*\n\n"
         "Something BIG is brewing at NovaTCG... \n\n"
-        "Start earning your points NOW so you are ready when we launch in *June 2026!* \n\n"
         "💡 *Earn 1 point for every $100 spent!*\n"
         "Sealed products do not qualify.\n\n"
         "What would you like to do?",
@@ -105,7 +104,6 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     points = get_user_points(user.id)
     await update.message.reply_text(
         f"*Your Points Balance*\n\nYou currently have *{points} points*.\n\n"
-        "Keep stacking your points before our *June 2026* launch!\n"
         "Big rewards are coming... stay tuned!",
         parse_mode="Markdown",
     )
@@ -121,7 +119,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             f"*Your Points Balance*\n\n"
             f"You currently have *{points} points*.\n\n"
-            "Keep stacking before our *June 2026* launch!\n"
             "Big rewards are coming... stay tuned! ",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="back_home")]]),
@@ -139,7 +136,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "- Shipping fees do not qualify\n\n"
             "*Redemption Prizes:*\n\n"
             "Something is brewing...\n\n"
-            "Exciting rewards are being prepared for our *June 2026* launch.\n"
             "Stack your points now and be ready to redeem amazing prizes!\n\n"
             "Stay tuned for the big reveal!",
             parse_mode="Markdown",
@@ -150,8 +146,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "*Redemption Coming Soon!*\n\n"
             "Something is brewing at NovaTCG...\n\n"
-            "Our rewards redemption is launching in *June 2026*!\n\n"
-            "In the meantime, keep earning your points so you are *first in line* to redeem when we go live!\n\n"
             "Stay tuned for the big reveal!",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="back_home")]]),
@@ -189,7 +183,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "*Nova Rewards Bot*\n\n"
             "Something BIG is brewing at NovaTCG...\n\n"
-            "Stack your points now — big rewards await in *June 2026!*\n\n"
             "What would you like to do?",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(keyboard),
