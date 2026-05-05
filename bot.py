@@ -268,6 +268,14 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Action cancelled.")
     return ConversationHandler.END
 
+async def unknown_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        f"Hey {update.effective_user.first_name}!\n\n"
+        "I am the *Nova Rewards Bot*.\n\n"
+        "Type /start to access the main menu!",
+        parse_mode="Markdown",
+    )
+
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     admin_conv = ConversationHandler(
@@ -282,6 +290,7 @@ def main():
     app.add_handler(CommandHandler("balance", balance))
     app.add_handler(admin_conv)
     app.add_handler(CallbackQueryHandler(button_handler))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, unknown_message))
     app.job_queue.run_repeating(process_purchases, interval=300, first=10)
     logger.info("Bot is running...")
     loop = asyncio.new_event_loop()
