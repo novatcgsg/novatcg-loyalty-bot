@@ -19,10 +19,10 @@ WAITING_FOR_USER_ID, WAITING_FOR_POINTS = range(2)
 VOUCHER_MAP = {
     2: "📦 Free Tracked Mail",
     3: "💳 $5 Store Credit",
-    4: "💳 $10 Store Credit",
-    7: "🏆 PSA 10 Slab (worth $50–$80)",
-    8: "💳 $30 Store Credit",
-    10: "🏆 PSA 10 Slab (worth $150–$180)",
+    5: "💳 $10 Store Credit",
+    8: "💳 $20 Store Credit",
+    12: "🏆 PSA 10 Slab (worth $50–$80)",
+    18: "🏆 PSA 10 Slab (worth $150–$180)",
 }
 
 def is_admin(user_id: int) -> bool:
@@ -42,7 +42,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"👋 Welcome, {user.first_name}!\n\n"
         "🏆 *NovaTCG Loyalty Points Bot*\n"
         "Earn, track, and redeem your loyalty points here.\n\n"
-        "💡 *Earn 1 point for every $100 spent!*\n\n"
+        "💡 *Earn 1 point for every $100 spent!*\n"
+        "❌ *Sealed products do not qualify.*\n\n"
         "What would you like to do?",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(keyboard),
@@ -53,7 +54,7 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ensure_user_exists(user.id, user.first_name, user.username or "")
     points = get_user_points(user.id)
     await update.message.reply_text(
-        f"💰 *Your Points Balance*\n\nYou currently have *{points} points*.\n\n💡 Earn 1 point for every $100 spent!",
+        f"💰 *Your Points Balance*\n\nYou currently have *{points} points*.\n\n💡 Earn 1 point for every $100 spent!\n❌ Sealed products do not qualify.",
         parse_mode="Markdown",
     )
 
@@ -75,14 +76,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             "ℹ️ *How to Earn Points*\n\n"
             "🛍 Spend *$100* → Earn *1 point*\n\n"
-            "Points are added by our admin after each purchase.\n\n"
+            "📋 *Eligibility Rules:*\n"
+            "✅ Telegram Orders\n"
+            "✅ TikTok Live purchases\n"
+            "❌ Sealed products do NOT qualify\n"
+            "❌ Claim Sales and Auctions do not qualify\n"
+            "❌ Shipping cost do not qualify\n\n"
             "🎁 *Redemption Prizes:*\n"
             "2 pts → 📦 Free Tracked Mail\n"
             "3 pts → 💳 $5 Store Credit\n"
-            "4 pts → 💳 $10 Store Credit\n"
-            "7 pts → 🏆 PSA 10 Slab ($50–$80)\n"
-            "8 pts → 💳 $30 Store Credit\n"
-            "10 pts → 🏆 PSA 10 Slab ($150–$180)",
+            "5 pts → 💳 $10 Store Credit\n"
+            "8 pts → 💳 $20 Store Credit\n"
+            "12 pts → 🏆 PSA 10 Slab / Sealed Pokemon Products(Will announce in redemption topic)\n"
+            "18 pts → 🏆 PSA 10 Slab / Sealed Pokemon Products(Will announce in redemption topic)\n\n"
+            "💡 Points are added by admin after each qualifying purchase.\n"
+            "📩 Contact us if you have any questions!",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="back_home")]]),
         )
@@ -91,7 +99,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         points = get_user_points(user.id)
         if points < 2:
             await query.edit_message_text(
-                f"❌ *Insufficient Points*\n\nYou need at least *2 points* to redeem.\nYou currently have *{points} points*.\n\n💡 Earn 1 point for every $100 spent!",
+                f"❌ *Insufficient Points*\n\nYou need at least *2 points* to redeem.\nYou currently have *{points} points*.\n\n💡 Earn 1 point for every $100 spent!\n❌ Sealed products do not qualify.",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="back_home")]]),
             )
@@ -102,7 +110,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     keyboard.append([InlineKeyboardButton(f"{prize} — {cost} pts", callback_data=f"redeem_{cost}")])
             keyboard.append([InlineKeyboardButton("🔙 Back", callback_data="back_home")])
             await query.edit_message_text(
-                f"🎁 *Redeem Points*\n\nYour balance: *{points} points*\n\nAvailable prizes:",
+                f"🎁 *Redeem Points*\n\nYour balance: *{points} points*\n\nAvailable prizes you can redeem:",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup(keyboard),
             )
@@ -172,7 +180,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if is_admin(user.id):
             keyboard.append([InlineKeyboardButton("⚙️ Admin Panel", callback_data="admin_panel")])
         await query.edit_message_text(
-            "🏆 *NovaTCG Loyalty Points Bot*\n\n💡 Earn 1 point for every $100 spent!\n\nWhat would you like to do?",
+            "🏆 *NovaTCG Loyalty Points Bot*\n\n💡 Earn 1 point for every $100 spent!\n❌ Sealed products do not qualify.\n\nWhat would you like to do?",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup(keyboard),
         )
