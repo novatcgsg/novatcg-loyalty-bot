@@ -90,8 +90,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"Welcome, {user.first_name}!\n\n"
         "*Nova Rewards Bot*\n\n"
-        "Something BIG is brewing at NovaTCG... \n\n"
-        "💡 *Earn 1 point for every $100 spent!*\n"
+        "Something BIG is brewing at NovaTCG...\n\n"
+        "Start earning your points NOW and be ready when the time comes!\n\n"
+        "Earn 1 point for every $100 spent!\n"
         "Sealed products do not qualify.\n\n"
         "What would you like to do?",
         parse_mode="Markdown",
@@ -104,7 +105,7 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     points = get_user_points(user.id)
     await update.message.reply_text(
         f"*Your Points Balance*\n\nYou currently have *{points} points*.\n\n"
-        "Big rewards are coming... stay tuned!",
+        "Keep stacking. Big rewards are coming... stay tuned!",
         parse_mode="Markdown",
     )
 
@@ -119,7 +120,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             f"*Your Points Balance*\n\n"
             f"You currently have *{points} points*.\n\n"
-            "Big rewards are coming... stay tuned! ",
+            "Keep stacking. Big rewards are coming... stay tuned!",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="back_home")]]),
         )
@@ -127,7 +128,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "how_to_earn":
         await query.edit_message_text(
             "*How to Earn Points*\n\n"
-            "Spend *$100* and earn *1 point*\n\n"
+            "Spend $100 and earn 1 point\n\n"
             "*Eligibility Rules:*\n"
             "- In-store purchases\n"
             "- Online orders\n"
@@ -227,9 +228,12 @@ async def receive_points_amount(update: Update, context: ContextTypes.DEFAULT_TY
             raise ValueError
         target_id = context.user_data["target_id"]
         action = context.user_data["admin_action"]
-if action == "add":
+        if action == "add":
             new_balance = add_points(target_id, amount)
-            await update.message.reply_text(f"*{amount} points added!*\nNew balance: *{new_balance} pts*", parse_mode="Markdown")
+            await update.message.reply_text(
+                f"*{amount} points added!*\nNew balance: *{new_balance} pts*",
+                parse_mode="Markdown",
+            )
             try:
                 await context.bot.send_message(
                     chat_id=target_id,
@@ -243,7 +247,10 @@ if action == "add":
             if result is None:
                 await update.message.reply_text("Insufficient points to deduct.")
             else:
-                await update.message.reply_text(f"*{amount} points deducted!*\nNew balance: *{result} pts*", parse_mode="Markdown")
+                await update.message.reply_text(
+                    f"*{amount} points deducted!*\nNew balance: *{result} pts*",
+                    parse_mode="Markdown",
+                )
                 try:
                     await context.bot.send_message(
                         chat_id=target_id,
