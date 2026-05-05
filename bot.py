@@ -77,16 +77,20 @@ async def process_purchases(context):
         logger.error(f"Error processing purchases: {e}")
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    ensure_user_exists(user.id, user.first_name, user.username or "")
+def main_keyboard(user_id):
     keyboard = [
         [InlineKeyboardButton("Check My Balance", callback_data="check_balance")],
         [InlineKeyboardButton("Redeem Points", callback_data="redeem_points")],
         [InlineKeyboardButton("How to Earn Points", callback_data="how_to_earn")],
     ]
-    if is_admin(user.id):
+    if is_admin(user_id):
         keyboard.append([InlineKeyboardButton("Admin Panel", callback_data="admin_panel")])
+    return InlineKeyboardMarkup(keyboard)
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    ensure_user_exists(user.id, user.first_name, user.username or "")
     await update.message.reply_text(
         f"Welcome, {user.first_name}!\n\n"
         "*Nova Rewards Bot*\n\n"
@@ -96,7 +100,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Sealed products do not qualify.\n\n"
         "What would you like to do?",
         parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup(keyboard),
+        reply_markup=main_keyboard(user.id),
     )
 
 async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -162,7 +166,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("View All Users", callback_data="admin_users")],
             [InlineKeyboardButton("Back", callback_data="back_home")],
         ]
-        await query.edit_message_text("*Admin Panel*\n\nSelect an action:", parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
+        await query.edit_message_text(
+            "*Admin Panel*\n\nSelect an action:",
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
 
     elif data == "admin_users":
         if not is_admin(user.id):
@@ -171,22 +179,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = "*All Users and Points*\n\n" if users else "No users found."
         for u in users:
             msg += f"- {u['name']} (@{u['username']}) - *{u['points']} pts*\n"
-        await query.edit_message_text(msg, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="admin_panel")]]))
+        await query.edit_message_text(
+            msg,
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="admin_panel")]]),
+        )
 
     elif data == "back_home":
-        keyboard = [
-            [InlineKeyboardButton("Check My Balance", callback_data="check_balance")],
-            [InlineKeyboardButton("Redeem Points", callback_data="redeem_points")],
-            [InlineKeyboardButton("How to Earn Points", callback_data="how_to_earn")],
-        ]
-        if is_admin(user.id):
-            keyboard.append([InlineKeyboardButton("Admin Panel", callback_data="admin_panel")])
         await query.edit_message_text(
             "*Nova Rewards Bot*\n\n"
             "Something BIG is brewing at NovaTCG...\n\n"
             "What would you like to do?",
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard),
+            reply_markup=main_keyboard(user.id),
         )
 
 async def admin_action_entry(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -272,8 +277,7 @@ async def smart_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     text = update.message.text.lower().strip()
 
-    # Balance keywords
-    if any(word in text for word in ["balance", "points", "how many", "my points", "check"]):
+    if any(w in text for w in ["balance", "points", "how many", "my points", "check"]):
         ensure_user_exists(user.id, user.first_name, user.username or "")
         points = get_user_points(user.id)
         await update.message.reply_text(
@@ -282,8 +286,7 @@ async def smart_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
         )
 
-    # Redeem keywords
-    elif any(word in text for word in ["redeem", "reward", "prize", "voucher", "claim"]):
+    elif any(w in text for w in ["redeem", "reward", "prize", "voucher", "claim"]):
         await update.message.reply_text(
             "*Redemption Coming Soon!*\n\n"
             "Something is brewing at NovaTCG...\n\n"
@@ -291,8 +294,7 @@ async def smart_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
         )
 
-    # Earn keywords
-    elif any(word in text for word in ["earn", "how to", "eligible", "qualify", "rules"]):
+    elif any(w in text for w in ["earn", "how to", "eligible", "qualify", "rules"]):
         await update.message.reply_text(
             "*How to Earn Points*\n\n"
             "Spend $100 and earn 1 point\n\n"
@@ -306,53 +308,30 @@ async def smart_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown",
         )
 
-    # Greeting keywords
-    elif any(word in text for word in ["hi", "hello", "hey", "helo", "hii", "sup", "yo"]):
-        keyboard = [
-            [InlineKeyboardButton("Check My Balance", callback_data="check_balance")],
-            [InlineKeyboardButton("Redeem Points", callback_data="redeem_points")],
-            [InlineKeyboardButton("How to Earn Points", callback_data="how_to_earn")],
-        ]
-        if is_admin(user.id):
-            keyboard.append([InlineKeyboardButton("Admin Panel", callback_data="admin_panel")])
+    elif any(w in text for w in ["hi", "hello", "hey", "helo", "hii", "sup", "yo", "good morning", "good afternoon", "good evening"]):
         await update.message.reply_text(
             f"Hey {user.first_name}! Welcome to *Nova Rewards Bot*!\n\n"
             "Something BIG is brewing at NovaTCG...\n\n"
             "What would you like to do?",
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard),
+            reply_markup=main_keyboard(user.id),
         )
 
-    # Help keywords
-    elif any(word in text for word in ["help", "menu", "what", "how", "info"]):
-        keyboard = [
-            [InlineKeyboardButton("Check My Balance", callback_data="check_balance")],
-            [InlineKeyboardButton("Redeem Points", callback_data="redeem_points")],
-            [InlineKeyboardButton("How to Earn Points", callback_data="how_to_earn")],
-        ]
-        if is_admin(user.id):
-            keyboard.append([InlineKeyboardButton("Admin Panel", callback_data="admin_panel")])
+    elif any(w in text for w in ["help", "menu", "what", "how", "info", "start"]):
         await update.message.reply_text(
             f"Here is what I can do for you, {user.first_name}!\n\n"
             "Use the buttons below or type /start to access the main menu.",
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard),
+            reply_markup=main_keyboard(user.id),
         )
 
-    # Default fallback
     else:
-        keyboard = [
-            [InlineKeyboardButton("Check My Balance", callback_data="check_balance")],
-            [InlineKeyboardButton("Redeem Points", callback_data="redeem_points")],
-            [InlineKeyboardButton("How to Earn Points", callback_data="how_to_earn")],
-        ]
-        if is_admin(user.id):
-            keyboard.append([InlineKeyboardButton("Admin Panel", callback_data="admin_panel")])
         await update.message.reply_text(
             f"Hey {user.first_name}! I am the *Nova Rewards Bot*.\n\n"
-            "I did not quite understand that. Use the buttons below or type /start!",
+            "I did not quite understand that.\n\n"
+            "Use the buttons below or type /start!",
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard),
+            reply_markup=main_keyboard(user.id),
         )
 
 def main():
@@ -365,12 +344,13 @@ def main():
         },
         fallbacks=[CommandHandler("cancel", cancel)],
         allow_reentry=True,
+        per_message=False,
     )
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("balance", balance))
-    app.add_handler(admin_conv)
     app.add_handler(CallbackQueryHandler(button_handler))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, smart_reply))
+    app.add_handler(admin_conv)
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, smart_reply), group=1)
     app.job_queue.run_repeating(process_purchases, interval=300, first=10)
     logger.info("Bot is running...")
     loop = asyncio.new_event_loop()
