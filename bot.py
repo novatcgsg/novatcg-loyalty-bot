@@ -90,7 +90,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "12 pts → 🏆 PSA 10 Slab / Sealed Pokemon Products(Will announce in redemption topic)\n"
             "18 pts → 🏆 PSA 10 Slab / Sealed Pokemon Products(Will announce in redemption topic)\n\n"
             "💡 Points are added by admin after each qualifying purchase.\n"
-            "📩 Contact us if you have any questions!",
+            "📩 Contact @TCGNova if you have any questions!",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="back_home")]]),
         )
