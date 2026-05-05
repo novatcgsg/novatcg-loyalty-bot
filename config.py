@@ -18,3 +18,13 @@ creds_json = os.environ.get("GOOGLE_CREDENTIALS")
 if creds_json:
     with open("credentials.json", "w") as f:
         f.write(creds_json)
+
+# ── Startup validation ────────────────────────────────────────────────────────
+if not BOT_TOKEN:
+    raise ValueError("❌ BOT_TOKEN environment variable is not set!")
+
+if not GOOGLE_SHEETS_ID:
+    raise ValueError("❌ GOOGLE_SHEETS_ID environment variable is not set!")
+
+if not os.path.exists("credentials.json"):
+    raise ValueError("❌ credentials.json not found! GOOGLE_CREDENTIALS env var may not be set.")
