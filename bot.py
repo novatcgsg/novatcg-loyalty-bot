@@ -8,6 +8,8 @@ from telegram.ext import (
 from sheets import (
     get_user_points, add_points, deduct_points,
     redeem_points, get_all_users, ensure_user_exists,
+    get_unprocessed_purchases, mark_purchase_processed,
+    get_user_id_by_username,
 )
 from config import BOT_TOKEN, ADMIN_IDS
 
@@ -27,6 +29,73 @@ VOUCHER_MAP = {
 
 def is_admin(user_id: int) -> bool:
     return user_id in ADMIN_IDS
+
+
+# ─────────────────────────────────────────
+# AUTO PURCHASE PROCESSOR (runs every 5 min)
+# ─────────────────────────────────────────
+
+async def process_purchases(context):
+    logger.info("Checking for unprocessed purchases...")
+    try:
+        purchases = get_unprocessed_purchases()
+        for purchase in purchases:
+            username = purchase["username"].lstrip("@")
+            try:
+                amount = float(purchase["amount"].replace("$", "").replace(",", ""))
+            except ValueError:
+                logger.warning(f"Invalid amount for {username}: {purchase['amount']}")
+                continue
+
+            points_to_award = int(amount // 100)
+
+            if points_to_award <= 0:
+                mark_purchase_processed(purchase["row_index"], 0)
+                continue
+
+            user_id, name = get_user_id_by_username(username)
+
+            if user_id is None:
+                for admin_id in ADMIN_IDS:
+                    try:
+                        await context.bot.send_message(
+                            chat_id=admin_id,
+                            text=f"Warning: User @{username} not found in Loyalty sheet. Please check the username and add them manually.",
+                            parse_mode="Markdown",
+                        )
+                    except Exception:
+                        pass
+                continue
+
+            new_balance = add_points(int(user_id), points_to_award)
+            mark_purchase_processed(purchase["row_index"], points_to_award)
+
+            try:
+                await context.bot.send_message(
+                    chat_id=int(user_id),
+                    text=f"*Points Added!*\n\nHi {name}! You have been awarded *{points_to_award} point(s)* for your recent purchase of ${amount:.2f}.\n\nYour new balance: *{new_balance} points*\n\nThank you for shopping with NovaTCG!",
+                    parse_mode="Markdown",
+                )
+            except Exception:
+                pass
+
+            for admin_id in ADMIN_IDS:
+                try:
+                    await context.bot.send_message(
+                        chat_id=admin_id,
+                        text=f"*Points Auto-Awarded*\n\nUser: @{username}\nPurchase: ${amount:.2f}\nPoints awarded: *{points_to_award}*\nNew balance: *{new_balance} pts*",
+                        parse_mode="Markdown",
+                    )
+                except Exception:
+                    pass
+
+    except Exception as e:
+        logger.error(f"Error processing purchases: {e}")
+
+
+# ─────────────────────────────────────────
+# USER COMMANDS
+# ─────────────────────────────────────────
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -89,7 +158,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "8 pts - $20 Store Credit\n"
             "12 pts - PSA 10 Slab / Sealed Pokemon Products (announced in redemption topic)\n"
             "18 pts - PSA 10 Slab / Sealed Pokemon Products (announced in redemption topic)\n\n"
-            "Points are added by admin after each qualifying purchase.\n"
+            "Points are added automatically after each qualifying purchase.\n"
             "Contact us if you have any questions!",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="back_home")]]),
@@ -99,7 +168,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         points = get_user_points(user.id)
         if points < 2:
             await query.edit_message_text(
-                f"*Insufficient Points*\n\nYou need at least *2 points* to redeem.\nYou currently have *{points} points*.\n\nEarn 1 point for every $100 spent!\nSealed products do not qualify.",
+                f"*Insufficient Points*\n\nYou need at least *2 points* to redeem.\nYou currently have *{points} points*.\n\nEarn 1 point for every $100 spent!",
                 parse_mode="Markdown",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="back_home")]]),
             )
@@ -256,6 +325,10 @@ def main():
     app.add_handler(CommandHandler("balance", balance))
     app.add_handler(admin_conv)
     app.add_handler(CallbackQueryHandler(button_handler))
+
+    # Auto-process purchases every 5 minutes
+    app.job_queue.run_repeating(process_purchases, interval=300, first=10)
+
     logger.info("Bot is running...")
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
