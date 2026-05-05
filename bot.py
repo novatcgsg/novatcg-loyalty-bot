@@ -16,14 +16,14 @@ logger = logging.getLogger(__name__)
 
 WAITING_FOR_USER_ID, WAITING_FOR_POINTS = range(2)
 
+
 VOUCHER_MAP = {
-VOUCHER_MAP = {
-    2: "📦 Free Tracked Mail",
-    3: "💳 $5 Store Credit",
-    5: "💳 $10 Store Credit",
-    8: "💳 $20 Store Credit",
-    12: "🏆 PSA 10 Slab / Sealed Pokemon Products (announced in redemption topic)",
-    18: "🏆 PSA 10 Slab / Sealed Pokemon Products (announced in redemption topic)",
+    2: "Free Tracked Mail",
+    3: "$5 Store Credit",
+    5: "$10 Store Credit",
+    8: "$20 Store Credit",
+    12: "PSA 10 Slab / Sealed Pokemon Products (announced in redemption topic)",
+    18: "PSA 10 Slab / Sealed Pokemon Products (announced in redemption topic)",
 }
 }
 
