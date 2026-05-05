@@ -7,11 +7,17 @@ SCOPES = [
     "https://www.googleapis.com/auth/drive",
 ]
 
-def get_sheet():
+def get_client():
     creds = Credentials.from_service_account_file(GOOGLE_CREDENTIALS_FILE, scopes=SCOPES)
-    client = gspread.authorize(creds)
-    sheet = client.open_by_key(GOOGLE_SHEETS_ID).sheet1
-    return sheet
+    return gspread.authorize(creds)
+
+def get_loyalty_sheet():
+    client = get_client()
+    return client.open_by_key(GOOGLE_SHEETS_ID).worksheet("Loyalty")
+
+def get_purchases_sheet():
+    client = get_client()
+    return client.open_by_key(GOOGLE_SHEETS_ID).worksheet("Purchases")
 
 def find_user_row(sheet, user_id: int):
     col = sheet.col_values(1)
@@ -20,21 +26,37 @@ def find_user_row(sheet, user_id: int):
             return i + 1
     return None
 
+def find_user_row_by_username(sheet, username: str):
+    col = sheet.col_values(3)
+    for i, val in enumerate(col):
+        if val.lower().strip().lstrip("@") == username.lower().strip().lstrip("@"):
+            return i + 1
+    return None
+
 def ensure_user_exists(user_id: int, name: str, username: str):
-    sheet = get_sheet()
+    sheet = get_loyalty_sheet()
     row = find_user_row(sheet, user_id)
     if row is None:
         sheet.append_row([str(user_id), name, username, 0])
 
 def get_user_points(user_id: int):
-    sheet = get_sheet()
+    sheet = get_loyalty_sheet()
     row = find_user_row(sheet, user_id)
     if row is None:
         return None
     return int(sheet.cell(row, 4).value or 0)
 
+def get_user_id_by_username(username: str):
+    sheet = get_loyalty_sheet()
+    row = find_user_row_by_username(sheet, username)
+    if row is None:
+        return None, None
+    user_id = sheet.cell(row, 1).value
+    name = sheet.cell(row, 2).value
+    return user_id, name
+
 def add_points(user_id: int, amount: int) -> int:
-    sheet = get_sheet()
+    sheet = get_loyalty_sheet()
     row = find_user_row(sheet, user_id)
     if row is None:
         return None
@@ -44,7 +66,7 @@ def add_points(user_id: int, amount: int) -> int:
     return new_total
 
 def deduct_points(user_id: int, amount: int):
-    sheet = get_sheet()
+    sheet = get_loyalty_sheet()
     row = find_user_row(sheet, user_id)
     if row is None:
         return None
@@ -60,7 +82,7 @@ def redeem_points(user_id: int, amount: int) -> bool:
     return result is not None
 
 def get_all_users():
-    sheet = get_sheet()
+    sheet = get_loyalty_sheet()
     rows = sheet.get_all_records()
     return [
         {
@@ -70,3 +92,26 @@ def get_all_users():
         }
         for r in rows
     ]
+
+def get_unprocessed_purchases():
+    sheet = get_purchases_sheet()
+    all_rows = sheet.get_all_values()
+    unprocessed = []
+    for i, row in enumerate(all_rows):
+        if i == 0:
+            continue
+        if len(row) >= 2 and row[0].strip():
+            status = row[3] if len(row) > 3 else ""
+            if status.lower().strip() != "processed":
+                unprocessed.append({
+                    "row_index": i + 1,
+                    "username": row[0].strip(),
+                    "amount": row[1].strip(),
+                    "date": row[2].strip() if len(row) > 2 else "",
+                })
+    return unprocessed
+
+def mark_purchase_processed(row_index: int, points_awarded: int):
+    sheet = get_purchases_sheet()
+    sheet.update_cell(row_index, 4, "Processed")
+    sheet.update_cell(row_index, 5, str(points_awarded))
