@@ -235,16 +235,23 @@ async def receive_user_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def receive_points_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
-        amount = int(update.message.text.strip())
+        amount = float(update.message.text.strip())
         if amount <= 0:
             raise ValueError
         target_id = context.user_data["target_id"]
         action = context.user_data["admin_action"]
         if action == "add":
             new_balance = add_points(target_id, amount)
-            await update.message.reply_text(f"*{amount} points added!*\nNew balance: *{new_balance} pts*", parse_mode="Markdown")
+            await update.message.reply_text(
+                f"*{amount} points added!*\nNew balance: *{new_balance} pts*",
+                parse_mode="Markdown",
+            )
             try:
-                await context.bot.send_message(chat_id=target_id, text=f"*Points Added!*\n\nAn admin has added *{amount} point(s)* to your account.\n\nYour new balance: *{new_balance} points*\n\nKeep shopping with NovaTCG!", parse_mode="Markdown")
+                await context.bot.send_message(
+                    chat_id=target_id,
+                    text=f"*Points Added!*\n\nAn admin has added *{amount} point(s)* to your account.\n\nYour new balance: *{new_balance} points*\n\nKeep shopping with NovaTCG!",
+                    parse_mode="Markdown",
+                )
             except Exception:
                 await update.message.reply_text("Note: Could not notify the user directly.")
         else:
@@ -252,14 +259,21 @@ async def receive_points_amount(update: Update, context: ContextTypes.DEFAULT_TY
             if result is None:
                 await update.message.reply_text("Insufficient points to deduct.")
                 return WAITING_FOR_POINTS
-            await update.message.reply_text(f"*{amount} points deducted!*\nNew balance: *{result} pts*", parse_mode="Markdown")
+            await update.message.reply_text(
+                f"*{amount} points deducted!*\nNew balance: *{result} pts*",
+                parse_mode="Markdown",
+            )
             try:
-                await context.bot.send_message(chat_id=target_id, text=f"*Points Update!*\n\nAn admin has deducted *{amount} point(s)* from your account.\n\nYour new balance: *{result} points*\n\nThank you for shopping with NovaTCG!", parse_mode="Markdown")
+                await context.bot.send_message(
+                    chat_id=target_id,
+                    text=f"*Points Update!*\n\nAn admin has deducted *{amount} point(s)* from your account.\n\nYour new balance: *{result} points*\n\nThank you for shopping with NovaTCG!",
+                    parse_mode="Markdown",
+                )
             except Exception:
                 await update.message.reply_text("Note: Could not notify the user directly.")
         return ConversationHandler.END
     except (ValueError, KeyError):
-        await update.message.reply_text("Enter a valid positive number, or type /cancel.")
+        await update.message.reply_text("Enter a valid positive number (e.g. 1.5 or 2), or type /cancel.")
         return WAITING_FOR_POINTS
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
