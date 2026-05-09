@@ -102,6 +102,24 @@ def main_keyboard(user_id):
     return InlineKeyboardMarkup(keyboard)
 
 
+def redeem_keyboard(points):
+    keyboard = []
+    for cost, prize in VOUCHER_MAP.items():
+        cost_display = int(cost) if cost == int(cost) else cost
+        if points >= cost:
+            keyboard.append([InlineKeyboardButton(
+                f"✅ {cost_display} pt - {prize}",
+                callback_data=f"redeem_{str(cost).replace('.', '_')}"
+            )])
+        else:
+            keyboard.append([InlineKeyboardButton(
+                f"🔒 {cost_display} pt - {prize}",
+                callback_data="locked"
+            )])
+    keyboard.append([InlineKeyboardButton("Back", callback_data="back_home")])
+    return InlineKeyboardMarkup(keyboard)
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     ensure_user_exists(user.id, user.first_name, user.username or "")
@@ -132,7 +150,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = query.from_user
     data = query.data
 
-    if data == "check_balance":
+    if data == "locked":
+        await query.answer("You do not have enough points for this prize yet. Keep shopping!", show_alert=True)
+        return
+
+    elif data == "check_balance":
         points = get_user_points(user.id)
         await query.edit_message_text(
             f"*Your Points Balance*\n\n"
@@ -160,47 +182,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif data == "redeem_points":
         points = get_user_points(user.id)
-        if points < 1:
-            await query.edit_message_text(
-                f"*Insufficient Points*\n\n"
-                f"You need at least *1 point* to redeem.\n"
-                f"You currently have *{points} points*.\n\n"
-                "Earn 1 point for every $100 spent!",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="back_home")]]),
-            )
-        else:
-            keyboard = []
-            for cost, prize in VOUCHER_MAP.items():
-                if points >= cost:
-                    cost_display = int(cost) if cost == int(cost) else cost
-                    keyboard.append([InlineKeyboardButton(
-                        f"{cost_display} pt - {prize}",
-                        callback_data=f"redeem_{str(cost).replace('.', '_')}"
-                    )])
-            keyboard.append([InlineKeyboardButton("Back", callback_data="back_home")])
-            await query.edit_message_text(
-                f"*Redeem Points*\n\nYour balance: *{points} points*\n\nAvailable prizes:",
-                parse_mode="Markdown",
-                reply_markup=InlineKeyboardMarkup(keyboard),
-            )
-
-    elif data == "prizes":
         await query.edit_message_text(
-            "*Nova Rewards - Full Prize List*\n\n"
-            "1 pt - Free Tracked Mailing\n"
-            "1.5 pts - 1 Chance for Nova Quarterly Giveaway Spin\n"
-            "5 pts - $3 Store Credit\n"
-            "7 pts - $5 Store Credit\n"
-            "11 pts - $8 Store Credit\n"
-            "13 pts - $10 Store Credit\n"
-            "15 pts - 1 Mega Brave or 1 Mega Symp Bundle of 10 Packs\n"
-            "17 pts - 1 Ninja Spinner Bundle of 10 Packs\n"
-            "19 pts - 1 First Partner Series 1 Collection (Limited Stock)\n"
-            "25 pts - 1 x PSA 10 Slab (View catalogue for options)\n"
-            "30 pts - 1 x ETB / Booster Box Jap/Eng (View catalogue for options)",
+            f"*Redeem Points*\n\n"
+            f"Your balance: *{points} points*\n\n"
+            "✅ = Available to redeem\n"
+            "🔒 = Not enough points yet\n\n"
+            "Choose your prize:",
             parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="back_home")]]),
+            reply_markup=redeem_keyboard(points),
         )
 
     elif data.startswith("redeem_"):
