@@ -35,7 +35,6 @@ VOUCHER_MAP = {
 def is_admin(user_id: int) -> bool:
     return user_id in ADMIN_IDS
 
-
 async def process_purchases(context):
     logger.info("Checking for unprocessed purchases...")
     try:
@@ -47,49 +46,31 @@ async def process_purchases(context):
             except ValueError:
                 logger.warning(f"Invalid amount for {username}: {purchase['amount']}")
                 continue
-
             points_to_award = int(amount // 100)
             if points_to_award <= 0:
                 mark_purchase_processed(purchase["row_index"], 0)
                 continue
-
             user_id, name = get_user_id_by_username(username)
             if user_id is None:
                 for admin_id in ADMIN_IDS:
                     try:
-                        await context.bot.send_message(
-                            chat_id=admin_id,
-                            text=f"Warning: User @{username} not found in Loyalty sheet. Please check and add manually.",
-                        )
+                        await context.bot.send_message(chat_id=admin_id, text=f"Warning: User @{username} not found in Loyalty sheet. Please check and add manually.")
                     except Exception:
                         pass
                 continue
-
             new_balance = add_points(int(user_id), points_to_award)
             mark_purchase_processed(purchase["row_index"], points_to_award)
-
             try:
-                await context.bot.send_message(
-                    chat_id=int(user_id),
-                    text=f"*Points Added!*\n\nHi {name}! You have been awarded *{points_to_award} point(s)* for your recent purchase of ${amount:.2f}.\n\nYour new balance: *{new_balance} points*\n\nThank you for shopping with NovaTCG!",
-                    parse_mode="Markdown",
-                )
+                await context.bot.send_message(chat_id=int(user_id), text=f"*Points Added!*\n\nHi {name}! You have been awarded *{points_to_award} point(s)* for your recent purchase of ${amount:.2f}.\n\nYour new balance: *{new_balance} points*\n\nThank you for shopping with NovaTCG!", parse_mode="Markdown")
             except Exception:
                 pass
-
             for admin_id in ADMIN_IDS:
                 try:
-                    await context.bot.send_message(
-                        chat_id=admin_id,
-                        text=f"*Points Auto-Awarded*\n\nUser: @{username}\nPurchase: ${amount:.2f}\nPoints awarded: *{points_to_award}*\nNew balance: *{new_balance} pts*",
-                        parse_mode="Markdown",
-                    )
+                    await context.bot.send_message(chat_id=admin_id, text=f"*Points Auto-Awarded*\n\nUser: @{username}\nPurchase: ${amount:.2f}\nPoints awarded: *{points_to_award}*\nNew balance: *{new_balance} pts*", parse_mode="Markdown")
                 except Exception:
                     pass
-
     except Exception as e:
         logger.error(f"Error processing purchases: {e}")
-
 
 def main_keyboard(user_id):
     keyboard = [
@@ -101,35 +82,22 @@ def main_keyboard(user_id):
         keyboard.append([InlineKeyboardButton("Admin Panel", callback_data="admin_panel")])
     return InlineKeyboardMarkup(keyboard)
 
-
 def redeem_keyboard(points):
     keyboard = []
     for cost, prize in VOUCHER_MAP.items():
         cost_display = int(cost) if cost == int(cost) else cost
         if points >= cost:
-            keyboard.append([InlineKeyboardButton(
-                f"✅ {cost_display} pt - {prize}",
-                callback_data=f"redeem_{str(cost).replace('.', '_')}"
-            )])
+            keyboard.append([InlineKeyboardButton(f"✅ {cost_display} pt - {prize}", callback_data=f"redeem_{str(cost).replace('.', '_')}")])
         else:
-            keyboard.append([InlineKeyboardButton(
-                f"🔒 {cost_display} pt - {prize}",
-                callback_data="locked"
-            )])
+            keyboard.append([InlineKeyboardButton(f"🔒 {cost_display} pt - {prize}", callback_data="locked")])
     keyboard.append([InlineKeyboardButton("Back", callback_data="back_home")])
     return InlineKeyboardMarkup(keyboard)
-
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     ensure_user_exists(user.id, user.first_name, user.username or "")
     await update.message.reply_text(
-        f"Welcome, {user.first_name}!\n\n"
-        "*Nova Rewards Bot is LIVE!*\n\n"
-        "Earn points with every qualifying purchase and redeem for amazing prizes!\n\n"
-        "Earn 1 point for every $100 spent!\n"
-        "Sealed products do not qualify.\n\n"
-        "What would you like to do?",
+        f"Welcome, {user.first_name}!\n\n*Nova Rewards Bot is LIVE!*\n\nEarn points with every qualifying purchase and redeem for amazing prizes!\n\nEarn 1 point for every $100 spent!\nSealed products do not qualify.\n\nWhat would you like to do?",
         parse_mode="Markdown",
         reply_markup=main_keyboard(user.id),
     )
@@ -139,8 +107,7 @@ async def balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ensure_user_exists(user.id, user.first_name, user.username or "")
     points = get_user_points(user.id)
     await update.message.reply_text(
-        f"*Your Points Balance*\n\nYou currently have *{points} points*.\n\n"
-        "Keep shopping to earn more points and redeem amazing prizes!",
+        f"*Your Points Balance*\n\nYou currently have *{points} points*.\n\nKeep shopping to earn more points and redeem amazing prizes!",
         parse_mode="Markdown",
     )
 
@@ -157,25 +124,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "check_balance":
         points = get_user_points(user.id)
         await query.edit_message_text(
-            f"*Your Points Balance*\n\n"
-            f"You currently have *{points} points*.\n\n"
-            "Keep shopping to earn more and redeem amazing prizes!",
+            f"*Your Points Balance*\n\nYou currently have *{points} points*.\n\nKeep shopping to earn more and redeem amazing prizes!",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="back_home")]]),
         )
 
     elif data == "how_to_earn":
         await query.edit_message_text(
-            "*How to Earn Points*\n\n"
-            "Spend $100 and earn 1 point\n\n"
-            "*Eligibility Rules:*\n"
-            "- In-store purchases\n"
-            "- Online orders\n"
-            "- TikTok Live purchases\n"
-            "- Sealed products do NOT qualify\n"
-            "- Shipping fees do not qualify\n\n"
-            "Points are added by admin after each qualifying purchase.\n"
-            "Contact us if you have any questions!",
+            "*How to Earn Points*\n\nSpend $100 and earn 1 point\n\n*Eligibility Rules:*\n- In-store purchases\n- Online orders\n- TikTok Live purchases\n- Sealed products do NOT qualify\n- Shipping fees do not qualify\n\nPoints are added by admin after each qualifying purchase.\nContact us if you have any questions!",
             parse_mode="Markdown",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="back_home")]]),
         )
@@ -183,11 +139,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "redeem_points":
         points = get_user_points(user.id)
         await query.edit_message_text(
-            f"*Redeem Points*\n\n"
-            f"Your balance: *{points} points*\n\n"
-            "✅ = Available to redeem\n"
-            "🔒 = Not enough points yet\n\n"
-            "Choose your prize:",
+            f"*Redeem Points*\n\nYour balance: *{points} points*\n\n✅ = Available to redeem\n🔒 = Not enough points yet\n\nChoose your prize:",
             parse_mode="Markdown",
             reply_markup=redeem_keyboard(points),
         )
@@ -209,21 +161,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 new_balance = get_user_points(user.id)
                 cost_display = int(cost) if cost == int(cost) else cost
                 await query.edit_message_text(
-                    f"*Redemption Successful!*\n\n"
-                    f"You redeemed *{cost_display} point(s)* for:\n*{prize}*\n\n"
-                    f"Remaining balance: *{new_balance} points*\n\n"
-                    f"An admin will contact you shortly.",
+                    f"*Redemption Successful!*\n\nYou redeemed *{cost_display} point(s)* for:\n*{prize}*\n\nRemaining balance: *{new_balance} points*\n\nAn admin will contact you shortly.",
                     parse_mode="Markdown",
                     reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="back_home")]]),
                 )
                 username = f"@{user.username}" if user.username else "No username"
-                notify_msg = (
-                    f"*New Redemption Request!*\n\n"
-                    f"User: {user.first_name} ({username})\n"
-                    f"User ID: {user.id}\n"
-                    f"Redeemed: *{cost_display} points* for *{prize}*\n"
-                    f"Remaining balance: *{new_balance} points*"
-                )
+                notify_msg = f"*New Redemption Request!*\n\nUser: {user.first_name} ({username})\nUser ID: {user.id}\nRedeemed: *{cost_display} points* for *{prize}*\nRemaining balance: *{new_balance} points*"
                 for admin_id in ADMIN_IDS:
                     try:
                         await context.bot.send_message(chat_id=admin_id, text=notify_msg, parse_mode="Markdown")
@@ -242,11 +185,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("View All Users", callback_data="admin_users")],
             [InlineKeyboardButton("Back", callback_data="back_home")],
         ]
-        await query.edit_message_text(
-            "*Admin Panel*\n\nSelect an action:",
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup(keyboard),
-        )
+        await query.edit_message_text("*Admin Panel*\n\nSelect an action:", parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(keyboard))
 
     elif data == "admin_users":
         if not is_admin(user.id):
@@ -255,18 +194,11 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = "*All Users and Points*\n\n" if users else "No users found."
         for u in users:
             msg += f"- {u['name']} (@{u['username']}) - *{u['points']} pts*\n"
-        await query.edit_message_text(
-            msg,
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="admin_panel")]]),
-        )
+        await query.edit_message_text(msg, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="admin_panel")]]))
 
     elif data == "back_home":
         await query.edit_message_text(
-            "*Nova Rewards Bot*\n\n"
-            "Earn 1 point for every $100 spent!\n"
-            "Sealed products do not qualify.\n\n"
-            "What would you like to do?",
+            "*Nova Rewards Bot*\n\nEarn 1 point for every $100 spent!\nSealed products do not qualify.\n\nWhat would you like to do?",
             parse_mode="Markdown",
             reply_markup=main_keyboard(user.id),
         )
@@ -314,16 +246,9 @@ async def receive_points_amount(update: Update, context: ContextTypes.DEFAULT_TY
         action = context.user_data["admin_action"]
         if action == "add":
             new_balance = add_points(target_id, amount)
-            await update.message.reply_text(
-                f"*{amount} points added!*\nNew balance: *{new_balance} pts*",
-                parse_mode="Markdown",
-            )
+            await update.message.reply_text(f"*{amount} points added!*\nNew balance: *{new_balance} pts*", parse_mode="Markdown")
             try:
-                await context.bot.send_message(
-                    chat_id=target_id,
-                    text=f"*Points Added!*\n\nAn admin has added *{amount} point(s)* to your account.\n\nYour new balance: *{new_balance} points*\n\nKeep shopping with NovaTCG!",
-                    parse_mode="Markdown",
-                )
+                await context.bot.send_message(chat_id=target_id, text=f"*Points Added!*\n\nAn admin has added *{amount} point(s)* to your account.\n\nYour new balance: *{new_balance} points*\n\nKeep shopping with NovaTCG!", parse_mode="Markdown")
             except Exception:
                 await update.message.reply_text("Note: Could not notify the user directly.")
         else:
@@ -331,16 +256,9 @@ async def receive_points_amount(update: Update, context: ContextTypes.DEFAULT_TY
             if result is None:
                 await update.message.reply_text("Insufficient points to deduct.")
             else:
-                await update.message.reply_text(
-                    f"*{amount} points deducted!*\nNew balance: *{result} pts*",
-                    parse_mode="Markdown",
-                )
+                await update.message.reply_text(f"*{amount} points deducted!*\nNew balance: *{result} pts*", parse_mode="Markdown")
                 try:
-                    await context.bot.send_message(
-                        chat_id=target_id,
-                        text=f"*Points Update!*\n\nAn admin has deducted *{amount} point(s)* from your account.\n\nYour new balance: *{result} points*\n\nThank you for shopping with NovaTCG!",
-                        parse_mode="Markdown",
-                    )
+                    await context.bot.send_message(chat_id=target_id, text=f"*Points Update!*\n\nAn admin has deducted *{amount} point(s)* from your account.\n\nYour new balance: *{result} points*\n\nThank you for shopping with NovaTCG!", parse_mode="Markdown")
                 except Exception:
                     await update.message.reply_text("Note: Could not notify the user directly.")
         context.user_data["in_admin_conv"] = False
@@ -357,76 +275,26 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def smart_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("in_admin_conv"):
         return
-
     user = update.effective_user
     text = update.message.text.lower().strip()
-
     if any(w in text for w in ["balance", "points", "how many", "my points", "check"]):
         ensure_user_exists(user.id, user.first_name, user.username or "")
         points = get_user_points(user.id)
-        await update.message.reply_text(
-            f"*Your Points Balance*\n\nYou currently have *{points} points*.\n\n"
-            "Keep shopping to earn more and redeem amazing prizes!",
-            parse_mode="Markdown",
-        )
-
+        await update.message.reply_text(f"*Your Points Balance*\n\nYou currently have *{points} points*.\n\nKeep shopping to earn more and redeem amazing prizes!", parse_mode="Markdown")
     elif any(w in text for w in ["redeem", "reward", "prize", "voucher", "claim"]):
         await update.message.reply_text(
-            "*Nova Rewards - Prize List*\n\n"
-            "1 pt - Free Tracked Mailing\n"
-            "1.5 pts - 1 Chance for Nova Quarterly Giveaway Spin\n"
-            "5 pts - $3 Store Credit\n"
-            "7 pts - $5 Store Credit\n"
-            "11 pts - $8 Store Credit\n"
-            "13 pts - $10 Store Credit\n"
-            "15 pts - 1 Mega Brave or 1 Mega Symp Bundle of 10 Packs\n"
-            "17 pts - 1 Ninja Spinner Bundle of 10 Packs\n"
-            "19 pts - 1 First Partner Series 1 Collection (Limited Stock)\n"
-            "25 pts - 1 x PSA 10 Slab (View catalogue for options)\n"
-            "30 pts - 1 x ETB / Booster Box Jap/Eng (View catalogue for options)\n\n"
-            "Tap Redeem Points in the menu to redeem!",
+            "*Nova Rewards - Prize List*\n\n1 pt - Free Tracked Mailing\n1.5 pts - 1 Chance for Nova Quarterly Giveaway Spin\n5 pts - $3 Store Credit\n7 pts - $5 Store Credit\n11 pts - $8 Store Credit\n13 pts - $10 Store Credit\n15 pts - 1 Mega Brave or 1 Mega Symp Bundle of 10 Packs\n17 pts - 1 Ninja Spinner Bundle of 10 Packs\n19 pts - 1 First Partner Series 1 Collection (Limited Stock)\n25 pts - 1 x PSA 10 Slab (View catalogue for options)\n30 pts - 1 x ETB / Booster Box Jap/Eng (View catalogue for options)\n\nTap Redeem Points in the menu to redeem!",
             parse_mode="Markdown",
             reply_markup=main_keyboard(user.id),
         )
-
     elif any(w in text for w in ["earn", "how to", "eligible", "qualify", "rules"]):
-        await update.message.reply_text(
-            "*How to Earn Points*\n\n"
-            "Spend $100 and earn 1 point\n\n"
-            "*Eligibility Rules:*\n"
-            "- In-store purchases\n"
-            "- Online orders\n"
-            "- TikTok Live purchases\n"
-            "- Sealed products do NOT qualify\n"
-            "- Shipping fees do not qualify",
-            parse_mode="Markdown",
-        )
-
+        await update.message.reply_text("*How to Earn Points*\n\nSpend $100 and earn 1 point\n\n*Eligibility Rules:*\n- In-store purchases\n- Online orders\n- TikTok Live purchases\n- Sealed products do NOT qualify\n- Shipping fees do not qualify", parse_mode="Markdown")
     elif any(w in text for w in ["hi", "hello", "hey", "helo", "hii", "sup", "yo", "good morning", "good afternoon", "good evening"]):
-        await update.message.reply_text(
-            f"Hey {user.first_name}! Welcome to *Nova Rewards Bot*!\n\n"
-            "Earn 1 point for every $100 spent and redeem for amazing prizes!\n\n"
-            "What would you like to do?",
-            parse_mode="Markdown",
-            reply_markup=main_keyboard(user.id),
-        )
-
+        await update.message.reply_text(f"Hey {user.first_name}! Welcome to *Nova Rewards Bot*!\n\nEarn 1 point for every $100 spent and redeem for amazing prizes!\n\nWhat would you like to do?", parse_mode="Markdown", reply_markup=main_keyboard(user.id))
     elif any(w in text for w in ["help", "menu", "what", "how", "info", "start"]):
-        await update.message.reply_text(
-            f"Here is what I can do for you, {user.first_name}!\n\n"
-            "Use the buttons below or type /start to access the main menu.",
-            parse_mode="Markdown",
-            reply_markup=main_keyboard(user.id),
-        )
-
+        await update.message.reply_text(f"Here is what I can do for you, {user.first_name}!\n\nUse the buttons below or type /start to access the main menu.", parse_mode="Markdown", reply_markup=main_keyboard(user.id))
     else:
-        await update.message.reply_text(
-            f"Hey {user.first_name}! I am the *Nova Rewards Bot*.\n\n"
-            "I did not quite understand that.\n\n"
-            "Use the buttons below or type /start!",
-            parse_mode="Markdown",
-            reply_markup=main_keyboard(user.id),
-        )
+        await update.message.reply_text(f"Hey {user.first_name}! I am the *Nova Rewards Bot*.\n\nI did not quite understand that.\n\nUse the buttons below or type /start!", parse_mode="Markdown", reply_markup=main_keyboard(user.id))
 
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
