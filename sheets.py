@@ -44,7 +44,8 @@ def get_user_points(user_id: int):
     row = find_user_row(sheet, user_id)
     if row is None:
         return None
-    return int(sheet.cell(row, 4).value or 0)
+    val = sheet.cell(row, 4).value or 0
+    return float(val)
 
 def get_user_id_by_username(username: str):
     sheet = get_loyalty_sheet()
@@ -55,29 +56,29 @@ def get_user_id_by_username(username: str):
     name = sheet.cell(row, 2).value
     return user_id, name
 
-def add_points(user_id: int, amount: int) -> int:
+def add_points(user_id: int, amount: float) -> float:
     sheet = get_loyalty_sheet()
     row = find_user_row(sheet, user_id)
     if row is None:
         return None
-    current = int(sheet.cell(row, 4).value or 0)
-    new_total = current + amount
+    current = float(sheet.cell(row, 4).value or 0)
+    new_total = round(current + amount, 2)
     sheet.update_cell(row, 4, new_total)
     return new_total
 
-def deduct_points(user_id: int, amount: int):
+def deduct_points(user_id: int, amount: float):
     sheet = get_loyalty_sheet()
     row = find_user_row(sheet, user_id)
     if row is None:
         return None
-    current = int(sheet.cell(row, 4).value or 0)
+    current = float(sheet.cell(row, 4).value or 0)
     if current < amount:
         return None
-    new_total = current - amount
+    new_total = round(current - amount, 2)
     sheet.update_cell(row, 4, new_total)
     return new_total
 
-def redeem_points(user_id: int, amount: int) -> bool:
+def redeem_points(user_id: int, amount: float) -> bool:
     result = deduct_points(user_id, amount)
     return result is not None
 
@@ -111,7 +112,7 @@ def get_unprocessed_purchases():
                 })
     return unprocessed
 
-def mark_purchase_processed(row_index: int, points_awarded: int):
+def mark_purchase_processed(row_index: int, points_awarded: float):
     sheet = get_purchases_sheet()
     sheet.update_cell(row_index, 4, "Processed")
     sheet.update_cell(row_index, 5, str(points_awarded))
