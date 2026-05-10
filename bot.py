@@ -185,13 +185,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]),
         )
 
-    elif data == "admin_users":
+   elif data == "admin_users":
         if not is_admin(user.id):
             return
         users = get_all_users()
         msg = "*All Users and Points*\n\n" if users else "No users found."
         for u in users:
-            msg += f"- {u['name']} (@{u['username']}) - *{u['points']} pts*\n"
+            name = str(u['name']).replace("_", " ").replace("*", "").replace("[", "").replace("]", "")
+            username = str(u['username']).replace("_", " ").replace("*", "").replace("[", "").replace("]", "")
+            msg += f"- {name} (@{username}) - *{u['points']} pts*\n"
         await query.edit_message_text(msg, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Back", callback_data="admin_panel")]]))
 
     elif data == "back_home":
